@@ -1,0 +1,19 @@
+{
+  "name": "dbc-forge",
+  "version": "0.1.0",
+  "description": "Offline simulation, validation and presets for Meteora Dynamic Bonding Curve (DBC) configs",
+  "type": "module",
+  "license": "MIT",
+  "bin": { "dbc-forge": "dist/src/cli.js" },
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": { ".": { "types": "./dist/src/index.d.ts", "import": "./dist/src/index.js" } },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/",
+    "presets": "node dist/src/cli.js presets",
+    "simulate": "node dist/src/cli.js simulate"
+  },
+  "devDependencies": { "typescript": "^5.6.0", "@types/node": "^20.14.0" }
+}
