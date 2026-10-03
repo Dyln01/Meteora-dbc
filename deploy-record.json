@@ -1,0 +1,39 @@
+{
+  "cluster": "devnet",
+  "rpcUrl": "https://api.devnet.solana.com",
+  "deployedAt": "2026-10-03T14:07:30.685Z",
+  "signature": "25nS6MTJ7Q69aDTGR5wu8TpjkHHUWTQgYLH8GY6yPTYJwPurQhwuKXq8LXeqqLvnygEPyEqp5bXGvQFNvB9M3YTy",
+  "dryRun": false,
+  "config": "GrL3YjhPdrwWXodLJczNwiAvuc5YtRQuBh6ZwjUNGgUv",
+  "baseMint": "5CDZ5f8nCnt7gXUKGy5Ct4yYn97zZBT3HT9Pi7jAcYcJ",
+  "quoteMint": "So11111111111111111111111111111111111111112",
+  "pool": "HcCBWwxUQ93eZivGg2U2fNk2hxsArdoLCcjtokAEWiJM",
+  "payer": "Dv4d7HGorUGtNu6Qf2PKPRW9P71sn5VUgsp6SWXVVFcy",
+  "token": {
+    "name": "dbc-forge meme",
+    "symbol": "FORGEMEME",
+    "uri": "https://dbc-forge.local/metadata.json"
+  },
+  "migrationQuoteThreshold": "800000000000",
+  "feeBps": 100,
+  "migrationFeePct": 1,
+  "curve": [
+    {
+      "sqrtPrice": "39742306062861926",
+      "liquidity": "1597902732476714912464868752724325"
+    },
+    {
+      "sqrtPrice": "85622201507120919",
+      "liquidity": "1483361562296316911187490793371008"
+    },
+    {
+      "sqrtPrice": "184467440737095516",
+      "liquidity": "1721288600097538128301372329805805"
+    },
+    {
+      "sqrtPrice": "368934881474191032",
+      "liquidity": "2922256554954925401601172215310881"
+    }
+  ],
+  "sqrtStartPrice": "18446744073709551"
+}

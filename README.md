@@ -238,6 +238,21 @@ Price, reserves, quote raised vs threshold, on-chain and computed graduation
 progress, migration flag. The SSE endpoint is the plug-and-play story for
 trading terminals: one `EventSource`, no polling.
 
+## Devnet evidence — a live pool, right now
+
+Deployed 2026-10-03 by this tool, meme preset, devnet:
+
+| | |
+|---|---|
+| pool | `HcCBWwxUQ93eZivGg2U2fNk2hxsArdoLCcjtokAEWiJM` — [explorer](https://explorer.solana.com/address/HcCBWwxUQ93eZivGg2U2fNk2hxsArdoLCcjtokAEWiJM?cluster=devnet) |
+| config | `GrL3YjhPdrwWXodLJczNwiAvuc5YtRQuBh6ZwjUNGgUv` |
+| base mint | `5CDZ5f8nCnt7gXUKGy5Ct4yYn97zZBT3HT9Pi7jAcYcJ` (`FORGEMEME`) |
+| deploy signature | `25nS6MTJ7Q69aDTGR5wu8TpjkHHUWTQgYLH8GY6yPTYJwPurQhwuKXq8LXeqqLvnygEPyEqp5bXGvQFNvB9M3YTy` |
+| full record | [`deploy-record.json`](./deploy-record.json) |
+
+Read it live: `dbc-forge feed --pool HcCBWwxUQ93eZivGg2U2fNk2hxsArdoLCcjtokAEWiJM --once`
+Trade it: `dbc-forge buy --pool HcCBWwxUQ93eZivGg2U2fNk2hxsArdoLCcjtokAEWiJM --sol 0.1`
+
 ## Roadmap
 
 - [x] `deploy` — devnet deployment via the `@meteora-ag/dynamic-bonding-curve-sdk`
