@@ -250,7 +250,8 @@ export async function runDeploy(a: RunDeployArgs): Promise<DeployRecord> {
     if (lamports < 20_000_000) {
       throw new Error(
         `payer ${payer.publicKey.toBase58()} holds ${(lamports / 1e9).toFixed(4)} SOL — need >= 0.02. ` +
-          `Airdrop first: solana airdrop 2 ${payer.publicKey.toBase58()}`,
+          `Airdrop first: dbc-forge airdrop --keypair ${process.env.KEYPAIR_PATH ?? '<your keypair path>'} ` +
+          `(or any devnet faucet for that pubkey)`,
       );
     }
   }
