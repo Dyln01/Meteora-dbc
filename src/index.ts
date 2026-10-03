@@ -5,3 +5,4 @@ export * from './migrate.js';
 export * from './deploy.js';
 export * from './feed.js';
 export * from './wallet.js';
+export * from './trade.js';

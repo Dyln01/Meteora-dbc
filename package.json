@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test dist/test/dbc.test.js dist/test/deploy.test.js dist/test/feed.test.js dist/test/migrate.test.js dist/test/reserve.test.js dist/test/wallet.test.js",
+    "test": "npm run build && node --test dist/test/dbc.test.js dist/test/deploy.test.js dist/test/feed.test.js dist/test/migrate.test.js dist/test/reserve.test.js dist/test/wallet.test.js dist/test/trade.test.js",
     "presets": "node dist/src/cli.js presets",
     "simulate": "node dist/src/cli.js simulate"
   },

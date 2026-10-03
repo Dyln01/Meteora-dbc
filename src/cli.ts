@@ -18,6 +18,7 @@ import { DEFAULT_DEVNET_OPTIONS, NATIVE_MINT, runDeploy } from './deploy.js';
 import { formatLine, openFeed, serveFeed } from './feed.js';
 import { DEFAULT_MIGRATION_OPTIONS, formatMigrationPreview, migrationPreview } from './migrate.js';
 import { generateKeypairFile, requestAirdrop } from './wallet.js';
+import { executeBuy } from './trade.js';
 
 interface Args {
   cmd: string;
@@ -41,6 +42,7 @@ interface Args {
   json?: boolean;
   keypair?: string;
   sol?: number;
+  slippage?: number;
 }
 
 function parse(argv: string[]): Args {
@@ -66,7 +68,8 @@ function parse(argv: string[]): Args {
     else if (t === '--uri') a.uri = argv[++i];
     else if (t === '--json') a.json = true;
     else if (t === '--keypair') a.keypair = argv[++i];
-    else if (t === '--sol') a.sol = Number(argv[++i]);
+      else if (t === '--sol') a.sol = Number(argv[++i]);
+    else if (t === '--slippage') a.slippage = Number(argv[++i]);
   }
   return a;
 }
@@ -129,6 +132,7 @@ Usage
   dbc-forge deploy    (--preset <name> | --config <file>) [--dry-run] [--out record.json]
                       [--quote-mint <addr>] [--name N] [--symbol S] [--uri U]
   dbc-forge feed      --pool <addr> [--once | --port N] [--interval ms]
+  dbc-forge buy       --pool <addr> [--sol N] [--slippage P]   demo-sized quote-in swap
   dbc-forge keygen    [--out path]          solana-keygen-format keypair, no CLI needed
   dbc-forge airdrop   [--keypair path] [--sol N]   devnet faucet, no CLI needed
 
@@ -223,6 +227,31 @@ function main(): void {
           console.log(`airdropped ${sol} SOL to ${r.pubkey}`);
           console.log(`  signature  ${r.signature}`);
           console.log(`  balance    ${r.balanceSol} SOL`);
+        })
+        .catch((e: any) => {
+          console.error(`error: ${e?.message ?? e}`);
+          process.exitCode = 2;
+        });
+      return;
+    }
+    case 'buy': {
+      if (!a.pool) throw new Error('buy needs --pool <address>');
+      const kp = a.keypair ?? process.env.KEYPAIR_PATH;
+      if (!kp) throw new Error('pass --keypair <path> or set KEYPAIR_PATH');
+      void executeBuy({
+        rpcUrl: process.env.RPC_URL ?? 'https://api.devnet.solana.com',
+        keypairPath: kp,
+        pool: a.pool,
+        solAmount: a.sol ?? 0.1,
+        slippagePct: a.slippage ?? 2,
+      })
+        .then((r) => {
+          console.log(`bought on ${r.pool}`);
+          console.log(`  signature   ${r.signature}`);
+          console.log(`  quote in    ${r.amountInLamports} lamports`);
+          console.log(`  min base out ${r.minimumBaseOut}`);
+          console.log(`  price       ${r.before.priceHuman.toExponential(4)} -> ${r.after.priceHuman.toExponential(4)}`);
+          console.log(`  progress    ${r.before.progressComputedPct}% -> ${r.after.progressComputedPct}%`);
         })
         .catch((e: any) => {
           console.error(`error: ${e?.message ?? e}`);
