@@ -105,17 +105,28 @@ function main(): void {
     case 'simulate':
     case 'validate': {
       const { cfg, spec } = loadConfig(a);
-      const sim = simulate(cfg, a.steps);
+      // Validate FIRST. Simulation walks the curve and throws on a malformed
+      // one, so running it first would make `validate` crash on exactly the
+      // broken configs it exists to diagnose.
       const findings = validate(cfg);
+      const hasError = findings.some((f) => f.severity === 'error');
       if (a.cmd === 'validate') {
         if (!findings.length) console.log('clean — no errors or warnings');
         for (const f of findings) console.log(`[${f.severity.toUpperCase()}] ${f.code}: ${f.message}`);
-        process.exitCode = findings.some((f) => f.severity === 'error') ? 1 : 0;
+        process.exitCode = hasError ? 1 : 0;
         return;
       }
       if (spec) console.log(`preset: ${spec.id} — ${spec.rationale}\n`);
+      if (hasError) {
+        // Still print findings, but skip the simulation rather than throwing.
+        console.log('config is invalid; simulation skipped:');
+        for (const f of findings) console.log(`  [${f.severity.toUpperCase()}] ${f.code}: ${f.message}`);
+        process.exitCode = 1;
+        return;
+      }
+      const sim = simulate(cfg, a.steps);
       console.log(formatReport(cfg, sim, findings));
-      process.exitCode = findings.some((f) => f.severity === 'error') ? 1 : 0;
+      process.exitCode = 0;
       return;
     }
     case 'emit': {
