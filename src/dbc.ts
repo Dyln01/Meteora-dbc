@@ -162,8 +162,10 @@ export function totalBaseForCurve(cfg: CurveConfig): bigint {
     const lower = i === 0 ? cfg.sqrtStartPrice : cfg.curve[i - 1].sqrtPrice;
     const seg = cfg.curve[i];
     if (seg.sqrtPrice > cfg.sqrtMigrationPrice) {
-      total += deltaBase(lower, cfg.sqrtMigrationPrice, seg.liquidity, Rounding.Up);
-      break; // migration reached mid-segment; no further segments trade
+      if (cfg.sqrtMigrationPrice > lower) {
+        total += deltaBase(lower, cfg.sqrtMigrationPrice, seg.liquidity, Rounding.Up);
+      }
+      break; // migration reached at or before this segment; nothing above trades
     }
     total += deltaBase(lower, seg.sqrtPrice, seg.liquidity, Rounding.Up);
   }
@@ -177,12 +179,41 @@ export function totalQuoteForCurve(cfg: CurveConfig): bigint {
     const lower = i === 0 ? cfg.sqrtStartPrice : cfg.curve[i - 1].sqrtPrice;
     const seg = cfg.curve[i];
     if (seg.sqrtPrice > cfg.sqrtMigrationPrice) {
-      total += deltaQuote(lower, cfg.sqrtMigrationPrice, seg.liquidity, Rounding.Up);
+      if (cfg.sqrtMigrationPrice > lower) {
+        total += deltaQuote(lower, cfg.sqrtMigrationPrice, seg.liquidity, Rounding.Up);
+      }
       break;
     }
     total += deltaQuote(lower, seg.sqrtPrice, seg.liquidity, Rounding.Up);
   }
   return total;
+}
+
+/**
+ * Base the program reserves for the FULL supplied curve, with no truncation
+ * at the migration price. This is what sits in the pool's base vault at
+ * launch; `totalBaseForCurve` is the slice of it that gets sold by
+ * graduation. The difference is the reserve migration has to draw on.
+ */
+export function totalBaseForCurveFull(cfg: CurveConfig): bigint {
+  let total = 0n;
+  for (let i = 0; i < cfg.curve.length; i++) {
+    const lower = i === 0 ? cfg.sqrtStartPrice : cfg.curve[i - 1].sqrtPrice;
+    total += deltaBase(lower, cfg.curve[i].sqrtPrice, cfg.curve[i].liquidity, Rounding.Up);
+  }
+  return total;
+}
+
+/**
+ * Base tokens the program hands to DAMM v2 at graduation:
+ * base = migrationQuote / migrationPrice, i.e. the seed sits exactly at the
+ * migration price (matches the SDK's `getMigrationBaseToken`).
+ * P = m^2 / 2^128, so base = ceil(quote * 2^128 / m^2).
+ */
+export function migrationBaseRequired(sqrtMigrationPrice: bigint, migrationQuote: bigint): bigint {
+  const m2 = sqrtMigrationPrice * sqrtMigrationPrice;
+  if (m2 === 0n) throw new Error('zero migration price');
+  return (migrationQuote * QUOTE_SCALE + m2 - 1n) / m2;
 }
 
 /* -------------------------------------------------------------------------- */

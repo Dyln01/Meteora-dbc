@@ -11,13 +11,33 @@
  *              L  = Δb * 2^128 / (√P_u - √P_l)
  */
 
-import { CurveConfig, LiquidityDistribution, QUOTE_SCALE, sqrtFromPrice, priceFromSqrt } from './dbc.js';
+import BN from 'bn.js';
+import { getMigrationBaseToken, MigrationOption } from '@meteora-ag/dynamic-bonding-curve-sdk';
+import {
+  CurveConfig,
+  LiquidityDistribution,
+  QUOTE_SCALE,
+  sqrtFromPrice,
+  priceFromSqrt,
+  migrationBaseRequired,
+  totalQuoteForCurve,
+} from './dbc.js';
 
 /** Liquidity needed to absorb `quote` across [lowerSqrt, upperSqrt). */
 export function liquidityForQuote(lowerSqrt: bigint, upperSqrt: bigint, quote: bigint): bigint {
   if (upperSqrt <= lowerSqrt) throw new Error('upperSqrt must exceed lowerSqrt');
   if (quote <= 0n) return 0n;
   return (quote * QUOTE_SCALE) / (upperSqrt - lowerSqrt);
+}
+
+/**
+ * Liquidity needed to keep `base` tokens in reserve across
+ * [lowerSqrt, upperSqrt): inversion of Δb = L * (√U - √L) / (√L * √U).
+ */
+export function liquidityForBase(lowerSqrt: bigint, upperSqrt: bigint, base: bigint): bigint {
+  if (upperSqrt <= lowerSqrt) throw new Error('upperSqrt must exceed lowerSqrt');
+  if (base <= 0n) return 0n;
+  return (base * upperSqrt * lowerSqrt) / (upperSqrt - lowerSqrt) + 1n;
 }
 
 export interface PresetSpec {
@@ -35,9 +55,20 @@ export interface PresetSpec {
   weights: number[];
   baseDecimals: number;
   quoteDecimals: number;
+  /** Migration fee percent of the threshold; drives the reserve tail size. */
+  migrationFeePct?: number;
 }
 
-/** Build a deployable CurveConfig from a human-readable preset spec. */
+/**
+ * Build a deployable CurveConfig from a human-readable preset spec.
+ *
+ * The trading curve ends at the migration price; a final RESERVE segment is
+ * then appended above it. Graduation seeds the DAMM v2 pool with
+ * base = netQuote / migrationPrice, and that base must already be sitting in
+ * the pool vault — a curve that ends exactly at migration reserves nothing
+ * and migrates broken. The tail is sized so the vault holds precisely the
+ * required migration base (its liquidity never trades pre-graduation).
+ */
 export function buildPreset(spec: PresetSpec): CurveConfig {
   const endPrice = spec.startPrice * spec.multiple;
   const sqrtStart = sqrtFromPrice(spec.startPrice);
@@ -59,13 +90,30 @@ export function buildPreset(spec: PresetSpec): CurveConfig {
     lower = upper;
   }
 
-  return {
+  // Migration reserve tail: 4x price headroom above migration, liquidity
+  // sized so the unsold base at graduation equals the DAMM v2 seed base.
+  const trading: CurveConfig = {
     sqrtStartPrice: sqrtStart,
     sqrtMigrationPrice: sqrtEnd,
     curve,
     baseDecimals: spec.baseDecimals,
     quoteDecimals: spec.quoteDecimals,
   };
+  const threshold = totalQuoteForCurve(trading);
+  const feePct = spec.migrationFeePct ?? 1;
+  // The program's threshold is fee-grossed: net = threshold / (1 + fee%).
+  const netQuote = (threshold * 100n) / (100n + BigInt(feePct));
+  const requiredBase = BigInt(
+    getMigrationBaseToken(
+      new BN(netQuote.toString()),
+      new BN(sqrtEnd.toString()),
+      MigrationOption.MET_DAMM_V2,
+    ).toString(),
+  );
+  const tailUpper = sqrtEnd * 2n; // 4x the migration price
+  curve.push({ sqrtPrice: tailUpper, liquidity: liquidityForBase(sqrtEnd, tailUpper, requiredBase) });
+
+  return trading;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -8,6 +8,8 @@
  * on-chain program uses — see ./dbc.ts.
  */
 
+import BN from 'bn.js';
+import { getMigrationBaseToken, MigrationOption } from '@meteora-ag/dynamic-bonding-curve-sdk';
 import {
   CurveConfig,
   LiquidityDistribution,
@@ -20,7 +22,9 @@ import {
   priceFromSqrt,
   sqrtFromPrice,
   totalBaseForCurve,
+  totalBaseForCurveFull,
   totalQuoteForCurve,
+  migrationBaseRequired,
 } from './dbc.js';
 
 /* -------------------------------------------------------------------------- */
@@ -149,7 +153,10 @@ export interface Finding {
  * are economically suspicious but technically valid — the kind of mistake that
  * produces a launchpad nobody can buy from, or one that graduates instantly.
  */
-export function validate(cfg: CurveConfig, opts: { totalSupply?: bigint } = {}): Finding[] {
+export function validate(
+  cfg: CurveConfig,
+  opts: { totalSupply?: bigint; migrationFeePct?: number } = {},
+): Finding[] {
   const f: Finding[] = [];
   const err = (code: string, message: string) => f.push({ severity: 'error', code, message });
   const warn = (code: string, message: string) => f.push({ severity: 'warn', code, message });
@@ -218,6 +225,35 @@ export function validate(cfg: CurveConfig, opts: { totalSupply?: bigint } = {}):
   const mult = priceFromSqrt(cfg.sqrtMigrationPrice) / Math.max(priceFromSqrt(cfg.sqrtStartPrice), 1e-300);
   if (mult > 1000) warn('EXTREME_MULTIPLE', `price rises ${mult.toFixed(0)}x across the curve — early buyers capture nearly all value`);
   if (mult < 1.5) warn('FLAT_CURVE', `price rises only ${mult.toFixed(2)}x; a flat curve gives no discovery signal`);
+
+  // Migration reserve: graduation seeds DAMM v2 with base = netQuote /
+  // migrationPrice, drawn from the pool's unsold base vault. A curve that
+  // ends exactly at the migration price sells every base token first and
+  // migrates with an empty base side — a silent, permanent failure.
+  try {
+    const sim = simulate(cfg, 8);
+    if (sim.quoteToGraduate !== null) {
+      const feePct = opts.migrationFeePct ?? 1;
+      const net = (sim.quoteToGraduate * 100n) / (100n + BigInt(feePct));
+      const required = BigInt(
+        getMigrationBaseToken(
+          new BN(net.toString()),
+          new BN(cfg.sqrtMigrationPrice.toString()),
+          MigrationOption.MET_DAMM_V2,
+        ).toString(),
+      );
+      const reserve = totalBaseForCurveFull(cfg) - sim.baseSoldAtGraduation;
+      if (reserve < required) {
+        err(
+          'MIGRATION_RESERVE_SHORTFALL',
+          `graduation leaves ${reserve} base units unsold but DAMM v2 seeding needs ${required}; ` +
+            `extend the curve above the migration price to reserve the difference`,
+        );
+      }
+    }
+  } catch {
+    // malformed curves are reported by the structural checks above
+  }
 
   return f;
 }
