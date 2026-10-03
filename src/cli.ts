@@ -17,6 +17,7 @@ import { CurveConfig } from './dbc.js';
 import { DEFAULT_DEVNET_OPTIONS, NATIVE_MINT, runDeploy } from './deploy.js';
 import { formatLine, openFeed, serveFeed } from './feed.js';
 import { DEFAULT_MIGRATION_OPTIONS, formatMigrationPreview, migrationPreview } from './migrate.js';
+import { generateKeypairFile, requestAirdrop } from './wallet.js';
 
 interface Args {
   cmd: string;
@@ -38,6 +39,8 @@ interface Args {
   symbol?: string;
   uri?: string;
   json?: boolean;
+  keypair?: string;
+  sol?: number;
 }
 
 function parse(argv: string[]): Args {
@@ -62,6 +65,8 @@ function parse(argv: string[]): Args {
     else if (t === '--symbol') a.symbol = argv[++i];
     else if (t === '--uri') a.uri = argv[++i];
     else if (t === '--json') a.json = true;
+    else if (t === '--keypair') a.keypair = argv[++i];
+    else if (t === '--sol') a.sol = Number(argv[++i]);
   }
   return a;
 }
@@ -124,6 +129,8 @@ Usage
   dbc-forge deploy    (--preset <name> | --config <file>) [--dry-run] [--out record.json]
                       [--quote-mint <addr>] [--name N] [--symbol S] [--uri U]
   dbc-forge feed      --pool <addr> [--once | --port N] [--interval ms]
+  dbc-forge keygen    [--out path]          solana-keygen-format keypair, no CLI needed
+  dbc-forge airdrop   [--keypair path] [--sol N]   devnet faucet, no CLI needed
 
 deploy reads the paying keypair from KEYPAIR_PATH (env) and the RPC from
 RPC_URL (default https://api.devnet.solana.com). --dry-run needs neither.
@@ -197,6 +204,30 @@ function main(): void {
         console.error(`error: ${e?.message ?? e}`);
         process.exitCode = 2;
       });
+      return;
+    }
+    case 'keygen': {
+      const out = a.out ?? 'devnet-keypair.json';
+      const pubkey = generateKeypairFile(out);
+      console.log(`wrote    ${out}`);
+      console.log(`pubkey   ${pubkey}`);
+      console.log('this file is the payer for deploys (KEYPAIR_PATH). Keep it private; it is git-ignored by name pattern.');
+      return;
+    }
+    case 'airdrop': {
+      const kp = a.keypair ?? process.env.KEYPAIR_PATH;
+      if (!kp) throw new Error('pass --keypair <path> or set KEYPAIR_PATH');
+      const sol = a.sol ?? 2;
+      void requestAirdrop(process.env.RPC_URL ?? 'https://api.devnet.solana.com', kp, sol)
+        .then((r) => {
+          console.log(`airdropped ${sol} SOL to ${r.pubkey}`);
+          console.log(`  signature  ${r.signature}`);
+          console.log(`  balance    ${r.balanceSol} SOL`);
+        })
+        .catch((e: any) => {
+          console.error(`error: ${e?.message ?? e}`);
+          process.exitCode = 2;
+        });
       return;
     }
     case 'feed': {
