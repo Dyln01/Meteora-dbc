@@ -32,6 +32,7 @@ import {
   buildCurveWithCustomSqrtPrices,
   createSqrtPrices,
   getMigrationBaseToken,
+  MIN_POOL_CREATION_FEE,
   deriveDbcPoolAddress,
   type ConfigParameters,
 } from '@meteora-ag/dynamic-bonding-curve-sdk';
@@ -160,7 +161,10 @@ export function buildConfigParameters(
       dynamicFeeEnabled: false,
       collectFeeMode: CollectFeeMode.QuoteToken,
       creatorTradingFeePercentage: 0,
-      poolCreationFee: 1,
+      // NB: this parameter is denominated in WHOLE SOL (converted at 9
+      // decimals by the SDK), not lamports. 1 here meant 1 SOL. Use the
+      // protocol minimum: MIN_POOL_CREATION_FEE lamports = 0.001 SOL.
+      poolCreationFee: MIN_POOL_CREATION_FEE / 1e9,
       enableFirstSwapWithMinFee: false,
     },
     migration: {
@@ -247,9 +251,10 @@ export async function runDeploy(a: RunDeployArgs): Promise<DeployRecord> {
 
   if (!a.dryRun) {
     const lamports = await connection.getBalance(payer.publicKey);
-    if (lamports < 20_000_000) {
+    if (lamports < 100_000_000) {
       throw new Error(
-        `payer ${payer.publicKey.toBase58()} holds ${(lamports / 1e9).toFixed(4)} SOL — need >= 0.02. ` +
+        `payer ${payer.publicKey.toBase58()} holds ${(lamports / 1e9).toFixed(4)} SOL — need >= 0.1 (rent for the five ` +
+          `new accounts plus fees). ` +
           `Airdrop first: dbc-forge airdrop --keypair ${process.env.KEYPAIR_PATH ?? '<your keypair path>'} ` +
           `(or any devnet faucet for that pubkey)`,
       );

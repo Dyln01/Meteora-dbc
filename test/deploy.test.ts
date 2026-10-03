@@ -35,8 +35,10 @@ for (const id of Object.keys(PRESETS)) {
     );
     assert.equal(p.migrationQuoteThreshold.toString(), sim.quoteToGraduate!.toString());
 
-    // DAMM v2 migration, quote-token fee collection.
+    // DAMM v2 migration, quote-token fee collection, minimum pool fee.
     assert.equal(p.migrationOption, 1);
+    // stored pre-converted, in lamports: the protocol minimum, 0.001 SOL
+    assert.equal(Number(p.poolCreationFee.toString()), 1_000_000);
     assert.equal(p.collectFeeMode, 0);
 
     // Curve strictly increasing from the start price.
