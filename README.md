@@ -248,6 +248,7 @@ Deployed 2026-10-03 by this tool, meme preset, devnet:
 | config | `GrL3YjhPdrwWXodLJczNwiAvuc5YtRQuBh6ZwjUNGgUv` |
 | base mint | `5CDZ5f8nCnt7gXUKGy5Ct4yYn97zZBT3HT9Pi7jAcYcJ` (`FORGEMEME`) |
 | deploy signature | `25nS6MTJ7Q69aDTGR5wu8TpjkHHUWTQgYLH8GY6yPTYJwPurQhwuKXq8LXeqqLvnygEPyEqp5bXGvQFNvB9M3YTy` |
+| first trade | `3bxR4bEGQqG6mQQszHceoWaRB5Bc6Q6G6PoxURKG2wXpuGqa7U1NYxk3BLCt2bnapAa4TQ9hnQDvXEGtMNj741ao` — 0.1 SOL in, price 1.0000e-9 → 1.0023e-9, progress 0 → 0.0124%, 1% fee retained by the pool |
 | full record | [`deploy-record.json`](./deploy-record.json) |
 
 Read it live: `dbc-forge feed --pool HcCBWwxUQ93eZivGg2U2fNk2hxsArdoLCcjtokAEWiJM --once`
